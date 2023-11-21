@@ -9,11 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@headlessui/react": "^1.7.17",
     "@heroicons/react": "^2.0.18",
     "@radix-ui/react-slot": "^1.0.2",
-    "@splinetool/react-spline": "^2.2.6",
-    "@splinetool/runtime": "^0.9.506",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "lucide-react": "^0.292.0",
