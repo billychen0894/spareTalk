@@ -23,7 +23,7 @@ export default function Menu() {
     <div>
       <button
         type="button"
-        className={`text-white -m-2.5 p-2.5 absolute top-8 left-8 ${
+        className={`text-white -m-2.5 p-2.5 fixed top-8 left-8 ${
           sidebarOpen ? "opacity-0" : "opacity-100"
         } transition duration-300 ease-in-out`}
         onClick={() => setSidebarOpen(true)}
