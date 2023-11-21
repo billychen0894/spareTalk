@@ -1,4 +1,3 @@
-import Sunset from "@components/models/Sunset";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -17,9 +16,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full">
-      <body className={`${inter.className} antialiased h-full`}>
+      <body
+        className={`${inter.className} antialiased h-full bg-gradient-to-br from-indigo-400 via-purple-400 to-pink-400`}
+      >
         {children}
-        <Sunset />
       </body>
     </html>
   );
