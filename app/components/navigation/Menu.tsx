@@ -23,9 +23,7 @@ export default function Menu() {
     <div>
       <button
         type="button"
-        className={`text-white -m-2.5 p-2.5 fixed top-8 left-8 ${
-          sidebarOpen ? "opacity-0" : "opacity-100"
-        } transition duration-300 ease-in-out`}
+        className="text-white -m-2.5 p-2.5 fixed top-8 left-8 z-40"
         onClick={() => setSidebarOpen(true)}
       >
         <span className="sr-only">Open Sidebar</span>
@@ -41,11 +39,7 @@ export default function Menu() {
             className="fixed inset-0 bg-transparent"
             onClick={() => setSidebarOpen(false)}
           />
-          <div
-            className={`relative mr-16 flex flex-1 w-full max-w-xs ${
-              sidebarOpen ? "opacity-100" : "opacity-0"
-            } transition duration-300 ease-in-out`}
-          >
+          <div className="relative mr-16 flex flex-1 w-full max-w-xs">
             <div className="absolute left-full top-0 w-16 flex justify-center pt-5">
               <button
                 type="button"
