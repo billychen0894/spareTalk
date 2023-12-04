@@ -5,29 +5,68 @@ import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
 import { ChatBubbleOvalLeftEllipsisIcon } from "@heroicons/react/20/solid";
+import { socket } from "@websocket/socket";
 import { motion } from "framer-motion";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function Home() {
   const [newMessage, setNewMessage] = useState<string>("");
   const [messages, setMessages] = useState<string[]>([]);
+  const [receivedMessages, setReceivedMessages] = useState<string[]>([]);
   const [isChatConnected, setIsChatConnected] = useState<boolean>(false);
   const [startChatSession, setStartChatSession] = useState<boolean>(false);
   const chatContainerRef = useRef<HTMLQuoteElement | null>(null);
 
   function startChatConnection() {
-    // connect socket.io server
     setStartChatSession(true);
-
-    // connected to socket.io server
-    setTimeout(() => {
-      setIsChatConnected(true);
-    }, 3000);
+    socket.connect();
   }
+
+  function disconnectChat() {
+    if (socket) {
+      setIsChatConnected(false);
+      setStartChatSession(false);
+      setMessages([]);
+      setReceivedMessages([]);
+
+      socket.disconnect();
+    }
+  }
+
+  useEffect(() => {
+    function onConnect() {
+      if (socket.connected) {
+        setIsChatConnected(true);
+        console.log(`client ${socket.id}: connected`);
+      }
+    }
+
+    function onMessaging(message: string) {
+      setReceivedMessages((prev) => [...prev, message]);
+    }
+
+    function OnDisConnect() {
+      if (socket.disconnected) {
+        setIsChatConnected(false);
+        console.log("disconnected");
+      }
+    }
+
+    socket.on("connect", onConnect);
+    socket.on("message", onMessaging);
+    socket.on("disconnect", OnDisConnect);
+
+    return () => {
+      socket.off("connect", onConnect);
+      socket.off("message", onMessaging);
+      socket.off("disconnect", OnDisConnect);
+    };
+  }, []);
 
   const handleSendMessage = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       event.preventDefault();
+      socket.emit("message", newMessage);
       setMessages((prev) => [...prev, newMessage]);
       setNewMessage("");
     }
@@ -55,7 +94,7 @@ export default function Home() {
           </div>
           <Button
             className="bg-white bg-opacity-20 backdrop-blur-lg shadow-lg hover:bg-transparent font-semibold text-2xl py-8 px-6"
-            onClick={() => startChatConnection()}
+            onClick={startChatConnection}
           >
             Start Chat
           </Button>
@@ -82,6 +121,11 @@ export default function Home() {
                 Connection completed, start to chat!
               </div>
             )}
+            {receivedMessages.map((message, i) => (
+              <div key={i} className="text-red-500 leading-7">
+                {message}
+              </div>
+            ))}
             {messages.map((message, i) => (
               <div key={i} className="leading-7">
                 {message}
@@ -102,11 +146,7 @@ export default function Home() {
             <Button
               type="button"
               className="bg-transparent hover:bg-transparent font-bold text-base leading-6 text-rose-500 hover:text-rose-400"
-              onClick={() => {
-                setIsChatConnected(false);
-                setStartChatSession(false);
-                setMessages([]);
-              }}
+              onClick={disconnectChat}
             >
               Leave
             </Button>
