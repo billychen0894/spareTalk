@@ -1,5 +1,6 @@
 "use client";
 
+import { createChatRoom } from "@actions/createChatRoom";
 import Menu from "@components/navigation/Menu";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -7,27 +8,43 @@ import { Label } from "@components/ui/label";
 import { ChatBubbleOvalLeftEllipsisIcon } from "@heroicons/react/20/solid";
 import { socket } from "@websocket/socket";
 import { motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+
+type ChatMessage = {
+  sender: string;
+  receiver: string;
+  message: string;
+  timestamp: number;
+};
 
 export default function Home() {
   const [newMessage, setNewMessage] = useState<string>("");
-  const [messages, setMessages] = useState<string[]>([]);
-  const [receivedMessages, setReceivedMessages] = useState<string[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isChatConnected, setIsChatConnected] = useState<boolean>(false);
   const [startChatSession, setStartChatSession] = useState<boolean>(false);
+  const [isPending, startTransition] = useTransition();
+  const [chatRoomIds, setChatRoomIds] = useState<string[]>([]);
   const chatContainerRef = useRef<HTMLQuoteElement | null>(null);
 
   function startChatConnection() {
     setStartChatSession(true);
     socket.connect();
+
+    startTransition(async () => {
+      // if there's existing idle chatRoom, connect to idle chatroom otherwise create one
+      const response = await createChatRoom();
+      const chatRoomId = response;
+      socket.emit("join-room", chatRoomId);
+      setChatRoomIds((prev) => [...prev, chatRoomId]);
+    });
+    console.log("chatRoomId", chatRoomIds);
   }
 
   function disconnectChat() {
     if (socket) {
       setIsChatConnected(false);
       setStartChatSession(false);
-      setMessages([]);
-      setReceivedMessages([]);
+      setChatMessages([]);
 
       socket.disconnect();
     }
@@ -37,28 +54,28 @@ export default function Home() {
     function onConnect() {
       if (socket.connected) {
         setIsChatConnected(true);
-        console.log(`client ${socket.id}: connected`);
+        console.log(`Client ${socket.id}: connected`);
       }
     }
 
-    function onMessaging(message: string) {
-      setReceivedMessages((prev) => [...prev, message]);
+    function onMessaging(message: ChatMessage) {
+      setChatMessages((prev) => [...prev, message]);
     }
 
     function OnDisConnect() {
       if (socket.disconnected) {
         setIsChatConnected(false);
-        console.log("disconnected");
+        console.log(`Client ${socket.id}: disconnected`);
       }
     }
 
     socket.on("connect", onConnect);
-    socket.on("message", onMessaging);
+    socket.on("chat-message", onMessaging);
     socket.on("disconnect", OnDisConnect);
 
     return () => {
       socket.off("connect", onConnect);
-      socket.off("message", onMessaging);
+      socket.off("chat-message", onMessaging);
       socket.off("disconnect", OnDisConnect);
     };
   }, []);
@@ -66,8 +83,14 @@ export default function Home() {
   const handleSendMessage = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      socket.emit("message", newMessage);
-      setMessages((prev) => [...prev, newMessage]);
+      const chatMessage: ChatMessage = {
+        sender: socket.id,
+        receiver: "",
+        message: newMessage,
+        timestamp: Date.now(),
+      };
+      socket.emit("chat-message", chatMessage);
+      setChatMessages((prev) => [...prev, chatMessage]);
       setNewMessage("");
     }
   };
@@ -121,16 +144,19 @@ export default function Home() {
                 Connection completed, start to chat!
               </div>
             )}
-            {receivedMessages.map((message, i) => (
-              <div key={i} className="text-red-500 leading-7">
-                {message}
-              </div>
-            ))}
-            {messages.map((message, i) => (
-              <div key={i} className="leading-7">
-                {message}
-              </div>
-            ))}
+            {chatMessages.map((message, i) => {
+              console.log(`Current socket ${socket.id}`);
+
+              return socket.id === message.sender ? (
+                <div key={i} className="text-blue-500 leading-7">
+                  {chatMessages[i].message}
+                </div>
+              ) : (
+                <div key={i} className="leading-7 text-red-500">
+                  {message.message}
+                </div>
+              );
+            })}
           </motion.blockquote>
         )}
       </main>
