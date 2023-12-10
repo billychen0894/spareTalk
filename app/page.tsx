@@ -17,14 +17,21 @@ type ChatMessage = {
   timestamp: number;
 };
 
+type ChatRoom = {
+  id: string;
+  state: "idle" | "occupied";
+  participants: Set<string>;
+};
+
 export default function Home() {
   const [newMessage, setNewMessage] = useState<string>("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isChatConnected, setIsChatConnected] = useState<boolean>(false);
   const [startChatSession, setStartChatSession] = useState<boolean>(false);
   const [isPending, startTransition] = useTransition();
-  const [chatRoomIds, setChatRoomIds] = useState<string[]>([]);
+  const [currChatRoom, setCurrChatRoom] = useState<ChatRoom | null>(null);
   const chatContainerRef = useRef<HTMLQuoteElement | null>(null);
+  const [isLeftChat, setIsLeftChat] = useState<boolean>(false);
 
   function startChatConnection() {
     setStartChatSession(true);
@@ -33,18 +40,19 @@ export default function Home() {
     startTransition(async () => {
       // if there's existing idle chatRoom, connect to idle chatroom otherwise create one
       const response = await createChatRoom();
-      const chatRoomId = response;
-      socket.emit("join-room", chatRoomId);
-      setChatRoomIds((prev) => [...prev, chatRoomId]);
+      const chatRoom = response;
+      socket.emit("join-room", chatRoom);
     });
-    console.log("chatRoomId", chatRoomIds);
   }
 
   function disconnectChat() {
     if (socket) {
+      socket.emit("leave-chat", currChatRoom?.id);
       setIsChatConnected(false);
       setStartChatSession(false);
       setChatMessages([]);
+      setCurrChatRoom(null);
+      setIsLeftChat(false);
 
       socket.disconnect();
     }
@@ -53,7 +61,6 @@ export default function Home() {
   useEffect(() => {
     function onConnect() {
       if (socket.connected) {
-        setIsChatConnected(true);
         console.log(`Client ${socket.id}: connected`);
       }
     }
@@ -62,21 +69,37 @@ export default function Home() {
       setChatMessages((prev) => [...prev, message]);
     }
 
-    function OnDisConnect() {
+    function onDisConnect() {
       if (socket.disconnected) {
         setIsChatConnected(false);
-        console.log(`Client ${socket.id}: disconnected`);
       }
+    }
+
+    function onChatConnected(chatRoom: ChatRoom) {
+      socket.emit("chatRoom-connected", chatRoom);
+
+      if (chatRoom && chatRoom.state === "occupied") {
+        setCurrChatRoom(chatRoom);
+        setIsChatConnected(true);
+      }
+    }
+
+    function onLeftChat(notification: string) {
+      console.log(`Notification: ${notification}`);
+      setIsLeftChat(true);
     }
 
     socket.on("connect", onConnect);
     socket.on("chat-message", onMessaging);
-    socket.on("disconnect", OnDisConnect);
-
+    socket.on("disconnect", onDisConnect);
+    socket.on("chatRoom-connected", onChatConnected);
+    socket.on("left-chat", onLeftChat);
     return () => {
       socket.off("connect", onConnect);
       socket.off("chat-message", onMessaging);
-      socket.off("disconnect", OnDisConnect);
+      socket.off("disconnect", onDisConnect);
+      socket.off("chatRoom-connected", onChatConnected);
+      socket.off("left-chat", onLeftChat);
     };
   }, []);
 
@@ -144,9 +167,8 @@ export default function Home() {
                 Connection completed, start to chat!
               </div>
             )}
+            {/* TODO: Revisit this differentiation of sender and receiver messages */}
             {chatMessages.map((message, i) => {
-              console.log(`Current socket ${socket.id}`);
-
               return socket.id === message.sender ? (
                 <div key={i} className="text-blue-500 leading-7">
                   {chatMessages[i].message}
@@ -157,6 +179,12 @@ export default function Home() {
                 </div>
               );
             })}
+            {isLeftChat && (
+              <div className="text-center leading-6 p-2">
+                The other person has left the chat, please click on Leave button
+                back to homepage.
+              </div>
+            )}
           </motion.blockquote>
         )}
       </main>
@@ -183,10 +211,11 @@ export default function Home() {
               type="text"
               id="chatInput"
               placeholder="Type your message here..."
-              className="m-1 text-black text-base leading-6 ring-offset-red-300 bg-[#FCFAFA] border-gray-600/40 focus-visible:ring-transparent focus-visible:ring-offset-0 placeholder:text-sm"
+              className="m-1 text-black text-base leading-6 ring-offset-red-300 bg-[#FCFAFA] border-gray-600/40 focus-visible:ring-transparent focus-visible:ring-offset-0 placeholder:text-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
               onChange={(e) => setNewMessage(e.target.value)}
               value={newMessage}
               onKeyDown={handleSendMessage}
+              disabled={isLeftChat}
             />
           </form>
         </motion.div>
