@@ -6,9 +6,11 @@ import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
 import { ChatBubbleOvalLeftEllipsisIcon } from "@heroicons/react/20/solid";
+import { scrollToBottom } from "@lib/utils";
 import { socket } from "@websocket/socket";
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { flushSync } from "react-dom";
 
 type ChatMessage = {
   sender: string;
@@ -59,6 +61,12 @@ export default function Home() {
   }
 
   useEffect(() => {
+    if (startChatSession) {
+      scrollToBottom(chatContainerRef);
+    }
+  }, [startChatSession]);
+
+  useEffect(() => {
     function onConnect() {
       if (socket.connected) {
         console.log(`Client ${socket.id}: connected`);
@@ -66,7 +74,9 @@ export default function Home() {
     }
 
     function onMessaging(message: ChatMessage) {
-      setChatMessages((prev) => [...prev, message]);
+      flushSync(() => {
+        setChatMessages((prev) => [...prev, message]);
+      });
     }
 
     function onDisConnect() {
@@ -94,6 +104,7 @@ export default function Home() {
     socket.on("disconnect", onDisConnect);
     socket.on("chatRoom-connected", onChatConnected);
     socket.on("left-chat", onLeftChat);
+
     return () => {
       socket.off("connect", onConnect);
       socket.off("chat-message", onMessaging);
@@ -106,18 +117,26 @@ export default function Home() {
   const handleSendMessage = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       event.preventDefault();
+      const participants = currChatRoom
+        ? Array.from(currChatRoom?.participants)
+        : [];
+      const receiver =
+        socket.id === participants[0] ? participants[1] : participants[0];
       const chatMessage: ChatMessage = {
         sender: socket.id,
-        receiver: "",
+        receiver,
         message: newMessage,
         timestamp: Date.now(),
       };
+
       socket.emit("chat-message", chatMessage);
       setChatMessages((prev) => [...prev, chatMessage]);
+      scrollToBottom(chatContainerRef);
       setNewMessage("");
     }
   };
 
+  // scrollToBottom(chatContainerRef);
   // messages should be differentiated with sender and receiver
   // when it's connected, the page should be auto-scroll to the latest messages
   // When users scroll up to see chat history, the auto-scroll should not take in effect, for UX
@@ -154,11 +173,6 @@ export default function Home() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, ease: "easeInOut" }}
           >
-            {/* Show connecting state */}
-            {/* Show connected state */}
-            {/* Show read messages state */}
-            {/* Show if person left the chat state */}
-            {/* show current time */}
             <div className="text-center leading-6">
               Searching for someone to chat...
             </div>
@@ -167,11 +181,10 @@ export default function Home() {
                 Connection completed, start to chat!
               </div>
             )}
-            {/* TODO: Revisit this differentiation of sender and receiver messages */}
             {chatMessages.map((message, i) => {
               return socket.id === message.sender ? (
                 <div key={i} className="text-blue-500 leading-7">
-                  {chatMessages[i].message}
+                  {message.message}
                 </div>
               ) : (
                 <div key={i} className="leading-7 text-red-500">
