@@ -10,7 +10,13 @@ export async function createChatRoom() {
     }
   );
 
-  const { chatRoomId } = (await response.json()) as { chatRoomId: string };
+  const { chatRoom } = (await response.json()) as {
+    chatRoom: {
+      id: string;
+      state: "idle" | "occupied";
+      participants: Set<string>;
+    };
+  };
 
-  return chatRoomId;
+  return chatRoom;
 }
