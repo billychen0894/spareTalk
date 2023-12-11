@@ -40,7 +40,6 @@ export default function Home() {
     socket.connect();
 
     startTransition(async () => {
-      // if there's existing idle chatRoom, connect to idle chatroom otherwise create one
       const response = await createChatRoom();
       const chatRoom = response;
       socket.emit("join-room", chatRoom);
@@ -67,22 +66,10 @@ export default function Home() {
   }, [startChatSession]);
 
   useEffect(() => {
-    function onConnect() {
-      if (socket.connected) {
-        console.log(`Client ${socket.id}: connected`);
-      }
-    }
-
     function onMessaging(message: ChatMessage) {
       flushSync(() => {
         setChatMessages((prev) => [...prev, message]);
       });
-    }
-
-    function onDisConnect() {
-      if (socket.disconnected) {
-        setIsChatConnected(false);
-      }
     }
 
     function onChatConnected(chatRoom: ChatRoom) {
@@ -99,16 +86,12 @@ export default function Home() {
       setIsLeftChat(true);
     }
 
-    socket.on("connect", onConnect);
     socket.on("chat-message", onMessaging);
-    socket.on("disconnect", onDisConnect);
     socket.on("chatRoom-connected", onChatConnected);
     socket.on("left-chat", onLeftChat);
 
     return () => {
-      socket.off("connect", onConnect);
       socket.off("chat-message", onMessaging);
-      socket.off("disconnect", onDisConnect);
       socket.off("chatRoom-connected", onChatConnected);
       socket.off("left-chat", onLeftChat);
     };
