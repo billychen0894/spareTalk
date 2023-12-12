@@ -22,6 +22,7 @@ export default forwardRef(function ChatMessages(
   if (!startChatSession) return null;
 
   return (
+    //TODO: Overflow issue when messages are getting more, when scroll up, it cannot scroll to the start of the convesation
     <motion.blockquote
       ref={ref}
       className="bg-white bg-opacity-20 backdrop-blur-lg p-8 rounded-t-lg shadow-lg min-h-[12rem] max-w-[32rem] w-full absolute bottom-0"
@@ -39,11 +40,19 @@ export default forwardRef(function ChatMessages(
       )}
       {chatMessages.map((message, i) => {
         return socket.id === message.sender ? (
-          <div key={i} className="text-blue-500 leading-7">
+          <div
+            key={i}
+            className="my-1 py-2 px-4 bg-purple-400 rounded-bl-3xl rounded-tl-3xl rounded-tr-xl text-white float-right clear-both max-w-md break-words"
+          >
+            <span className="sr-only">Me: </span>
             {message.message}
           </div>
         ) : (
-          <div key={i} className="leading-7 text-red-500">
+          <div
+            key={i}
+            className="leading-7 my-1 py-2 px-4 bg-purple-400 rounded-br-3xl rounded-tr-3xl rounded-tl-xl text-white float-left clear-both max-w-md break-words"
+          >
+            <span className="sr-only">Stranger: </span>
             {message.message}
           </div>
         );
