@@ -97,6 +97,7 @@ export default function Home() {
     if (event.key === "Enter") {
       event.preventDefault();
 
+      if (!isChatConnected) return;
       if (newMessage === "") return;
 
       const participants = currChatRoom
