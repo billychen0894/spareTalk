@@ -99,6 +99,9 @@ export default function Home() {
   const handleSendMessage = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       event.preventDefault();
+
+      if (newMessage === "") return;
+
       const participants = currChatRoom
         ? Array.from(currChatRoom?.participants)
         : [];
