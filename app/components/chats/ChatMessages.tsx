@@ -22,10 +22,9 @@ export default forwardRef(function ChatMessages(
   if (!startChatSession) return null;
 
   return (
-    //TODO: Overflow issue when messages are getting more, when scroll up, it cannot scroll to the start of the convesation
     <motion.blockquote
       ref={ref}
-      className="bg-white bg-opacity-20 backdrop-blur-lg p-8 rounded-t-lg shadow-lg min-h-[12rem] max-w-[32rem] w-full absolute bottom-0"
+      className="bg-white bg-opacity-20 backdrop-blur-lg p-8 rounded-t-lg shadow-lg max-w-[32rem] w-full flex-grow relative bottom-[48px]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeInOut" }}

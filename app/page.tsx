@@ -38,6 +38,7 @@ export default function Home() {
     socket.connect();
 
     startTransition(async () => {
+      // TODO: if server is down, implement error handling on fetch error
       const response = await createChatRoom();
       const chatRoom = response;
       socket.emit("join-room", chatRoom);
@@ -119,7 +120,7 @@ export default function Home() {
 
   return (
     <>
-      <main className="text-white max-w-7xl mx-auto h-screen px-4 sm:px-6 lg:px-8 flex flex-col justify-center items-center relative">
+      <main className="text-white w-full min-h-screen overflow-y-auto flex flex-col justify-center items-center">
         <Menu />
         <ChatAction
           startChatSession={startChatSession}
@@ -133,7 +134,6 @@ export default function Home() {
           ref={chatContainerRef}
         />
       </main>
-
       <ChatInput
         startChatSession={startChatSession}
         handleDisconnectChat={disconnectChat}

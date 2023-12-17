@@ -25,12 +25,12 @@ export default function ChatInput({
 
   return (
     <motion.div
-      className="shadow-lg sticky bottom-0 left-0"
+      className="shadow-lg fixed bottom-0 left-0 w-full"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeInOut" }}
     >
-      <form className="w-full flex items-center bg-[#FCFAFA]">
+      <form className="w-full h-full flex items-center bg-[#FCFAFA]">
         <Button
           type="button"
           className="bg-transparent hover:bg-transparent font-bold text-base leading-6 text-rose-500 hover:text-rose-400"

@@ -15,9 +15,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full w-full">
+    <html lang="en" className="w-full h-full">
       <body
-        className={`${inter.className} antialiased h-full bg-gradient-to-br from-indigo-400 via-purple-400 to-pink-400`}
+        className={`${inter.className} antialiased w-full bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400`}
       >
         {children}
       </body>
