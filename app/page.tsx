@@ -5,7 +5,6 @@ import ChatAction from "@components/chats/ChatAction";
 import ChatInput from "@components/chats/ChatInput";
 import ChatMessages from "@components/chats/ChatMessages";
 import Menu from "@components/navigation/Menu";
-import { scrollToBottom } from "@lib/utils";
 import { socket } from "@websocket/socket";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { flushSync } from "react-dom";
@@ -58,11 +57,9 @@ export default function Home() {
     }
   }
 
-  useEffect(() => {
-    if (startChatSession) {
-      scrollToBottom(chatContainerRef);
-    }
-  }, [startChatSession]);
+  // useEffect(() => {
+  //   chatContainerRef?.current?.scrollIntoView({ behavior: "smooth" });
+  // }, [chatMessages]);
 
   useEffect(() => {
     function onMessaging(message: ChatMessage) {
@@ -116,14 +113,17 @@ export default function Home() {
 
       socket.emit("chat-message", chatMessage);
       setChatMessages((prev) => [...prev, chatMessage]);
-      scrollToBottom(chatContainerRef);
+
+      let lastElement = chatContainerRef?.current?.lastElementChild;
+      lastElement?.scrollIntoView();
+
       setNewMessage("");
     }
   };
 
   return (
     <>
-      <main className="text-white w-full min-h-screen overflow-y-auto flex flex-col justify-center items-center">
+      <main className="text-white w-full min-h-screen overflow-y-auto flex flex-col justify-center items-center scroll-smooth">
         <Menu />
         <ChatAction
           startChatSession={startChatSession}
