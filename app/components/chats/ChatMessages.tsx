@@ -1,13 +1,14 @@
 import { ChatMessage } from "@page";
-import { socket } from "@websocket/socket";
 import { motion } from "framer-motion";
 import { ForwardedRef, forwardRef } from "react";
+import { Socket } from "socket.io-client";
 
 type ChatMessagesProps = {
   startChatSession: boolean;
   isChatConnected: boolean;
   isLeftChat: boolean;
   chatMessages: ChatMessage[];
+  socket: Socket;
 };
 
 export default forwardRef(function ChatMessages(
@@ -16,6 +17,7 @@ export default forwardRef(function ChatMessages(
     isChatConnected,
     isLeftChat,
     chatMessages,
+    socket,
   }: ChatMessagesProps,
   ref: ForwardedRef<HTMLQuoteElement | null>
 ) {

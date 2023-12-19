@@ -5,7 +5,7 @@ import ChatAction from "@components/chats/ChatAction";
 import ChatInput from "@components/chats/ChatInput";
 import ChatMessages from "@components/chats/ChatMessages";
 import Menu from "@components/navigation/Menu";
-import { socket } from "@websocket/socket";
+import { SocketClient } from "@websocket/socket";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { flushSync } from "react-dom";
 
@@ -31,6 +31,8 @@ export default function Home() {
   const [currChatRoom, setCurrChatRoom] = useState<ChatRoom | null>(null);
   const chatContainerRef = useRef<HTMLQuoteElement | null>(null);
   const [isLeftChat, setIsLeftChat] = useState<boolean>(false);
+  const socketClient = SocketClient.getInstance();
+  const socket = socketClient.getSocket();
 
   function startChatConnection() {
     setStartChatSession(true);
@@ -56,10 +58,6 @@ export default function Home() {
       socket.disconnect();
     }
   }
-
-  // useEffect(() => {
-  //   chatContainerRef?.current?.scrollIntoView({ behavior: "smooth" });
-  // }, [chatMessages]);
 
   useEffect(() => {
     function onMessaging(message: ChatMessage) {
@@ -91,7 +89,7 @@ export default function Home() {
       socket.off("chatRoom-connected", onChatConnected);
       socket.off("left-chat", onLeftChat);
     };
-  }, []);
+  }, [socket]);
 
   const handleSendMessage = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
@@ -136,6 +134,7 @@ export default function Home() {
           isLeftChat={isLeftChat}
           chatMessages={chatMessages}
           ref={chatContainerRef}
+          socket={socket}
         />
       </main>
       <ChatInput
