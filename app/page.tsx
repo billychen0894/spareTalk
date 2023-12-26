@@ -1,6 +1,5 @@
 "use client";
 
-import { createChatRoom } from "@actions/createChatRoom";
 import ChatAction from "@components/chats/ChatAction";
 import ChatInput from "@components/chats/ChatInput";
 import ChatMessages from "@components/chats/ChatMessages";
@@ -31,19 +30,11 @@ export default function Home() {
   const [currChatRoom, setCurrChatRoom] = useState<ChatRoom | null>(null);
   const chatContainerRef = useRef<HTMLQuoteElement | null>(null);
   const [isLeftChat, setIsLeftChat] = useState<boolean>(false);
-  const socketClient = SocketClient.getInstance();
-  const socket = socketClient.getSocket();
+  const socket = SocketClient.getInstance().getSocket();
 
   function startChatConnection() {
     setStartChatSession(true);
     socket.connect();
-
-    startTransition(async () => {
-      // TODO: if server is down, implement error handling on fetch error
-      const response = await createChatRoom();
-      const chatRoom = response;
-      socket.emit("join-room", chatRoom);
-    });
   }
 
   function disconnectChat() {
@@ -67,9 +58,8 @@ export default function Home() {
     }
 
     function onChatConnected(chatRoom: ChatRoom) {
-      socket.emit("chatRoom-connected", chatRoom);
-
       if (chatRoom && chatRoom.state === "occupied") {
+        socket.emit("chatRoom-connected", chatRoom);
         setCurrChatRoom(chatRoom);
         setIsChatConnected(true);
       }
@@ -80,11 +70,19 @@ export default function Home() {
       setIsLeftChat(true);
     }
 
+    function startChat() {
+      if (socket.connected && socket.id) {
+        socket.emit("start-chat", socket.id);
+      }
+    }
+
+    socket.on("connect", startChat);
     socket.on("chat-message", onMessaging);
     socket.on("chatRoom-connected", onChatConnected);
     socket.on("left-chat", onLeftChat);
 
     return () => {
+      socket.off("connect", startChat);
       socket.off("chat-message", onMessaging);
       socket.off("chatRoom-connected", onChatConnected);
       socket.off("left-chat", onLeftChat);
