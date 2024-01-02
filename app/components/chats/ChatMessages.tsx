@@ -59,7 +59,7 @@ export default forwardRef(function ChatMessages(
         );
       })}
       {isLeftChat && (
-        <div className="text-center leading-6 p-2">
+        <div className="text-center leading-6 p-2 clear-both">
           The other person has left the chat, please click on Leave button back
           to homepage.
         </div>
