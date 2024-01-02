@@ -5,7 +5,7 @@ import ChatInput from "@components/chats/ChatInput";
 import ChatMessages from "@components/chats/ChatMessages";
 import Menu from "@components/navigation/Menu";
 import { SocketClient } from "@websocket/socket";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 
 export type ChatMessage = {
@@ -26,10 +26,10 @@ export default function Home() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isChatConnected, setIsChatConnected] = useState<boolean>(false);
   const [startChatSession, setStartChatSession] = useState<boolean>(false);
-  const [isPending, startTransition] = useTransition();
   const [currChatRoom, setCurrChatRoom] = useState<ChatRoom | null>(null);
   const chatContainerRef = useRef<HTMLQuoteElement | null>(null);
   const [isLeftChat, setIsLeftChat] = useState<boolean>(false);
+  const [isError, setIsError] = useState<boolean>(false);
   const socket = SocketClient.getInstance().getSocket();
 
   function startChatConnection() {
@@ -76,16 +76,25 @@ export default function Home() {
       }
     }
 
+    function connectError(err: any) {
+      if (err) {
+        setIsError(true);
+        console.error(err.message);
+      }
+    }
+
     socket.on("connect", startChat);
     socket.on("chat-message", onMessaging);
     socket.on("chatRoom-connected", onChatConnected);
     socket.on("left-chat", onLeftChat);
+    socket.on("connect_error", connectError);
 
     return () => {
       socket.off("connect", startChat);
       socket.off("chat-message", onMessaging);
       socket.off("chatRoom-connected", onChatConnected);
       socket.off("left-chat", onLeftChat);
+      socket.off("connect_error", connectError);
     };
   }, [socket]);
 
@@ -133,6 +142,7 @@ export default function Home() {
           chatMessages={chatMessages}
           ref={chatContainerRef}
           socket={socket}
+          isError={isError}
         />
       </main>
       <ChatInput

@@ -9,6 +9,7 @@ type ChatMessagesProps = {
   isLeftChat: boolean;
   chatMessages: ChatMessage[];
   socket: Socket;
+  isError: boolean;
 };
 
 export default forwardRef(function ChatMessages(
@@ -18,6 +19,7 @@ export default forwardRef(function ChatMessages(
     isLeftChat,
     chatMessages,
     socket,
+    isError,
   }: ChatMessagesProps,
   ref: ForwardedRef<HTMLQuoteElement | null>
 ) {
@@ -62,6 +64,11 @@ export default forwardRef(function ChatMessages(
         <div className="text-center leading-6 p-2 clear-both">
           The other person has left the chat, please click on Leave button back
           to homepage.
+        </div>
+      )}
+      {isError && (
+        <div className="text-center leading-6 p-2 clear-both">
+          Connection Error! Please try again later.
         </div>
       )}
     </motion.blockquote>
