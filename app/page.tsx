@@ -32,6 +32,28 @@ export default function Home() {
   const [isError, setIsError] = useState<boolean>(false);
   const socket = SocketClient.getInstance().getSocket();
 
+  useEffect(() => {
+    // Recover session if exists
+    if (typeof window !== undefined) {
+      const chatSessionObj = window.localStorage.getItem("chatSession");
+
+      if (chatSessionObj) {
+        const chatSession = JSON.parse(chatSessionObj) as {
+          sessionId: string;
+          chatRoomId: string;
+        };
+
+        socket.auth = {
+          sessionId: chatSession.sessionId,
+          chatRoomId: chatSession.chatRoomId,
+        };
+        socket.connect();
+
+        setStartChatSession(true);
+      }
+    }
+  }, [socket]);
+
   function startChatConnection() {
     setStartChatSession(true);
     socket.connect();
@@ -39,6 +61,10 @@ export default function Home() {
 
   function disconnectChat() {
     if (socket) {
+      if (typeof window !== undefined) {
+        window.localStorage.removeItem("chatSession");
+      }
+
       socket.emit("leave-chat", currChatRoom?.id);
       setIsChatConnected(false);
       setStartChatSession(false);
@@ -59,7 +85,6 @@ export default function Home() {
 
     function onChatConnected(chatRoom: ChatRoom) {
       if (chatRoom && chatRoom.state === "occupied") {
-        socket.emit("chatRoom-connected", chatRoom);
         setCurrChatRoom(chatRoom);
         setIsChatConnected(true);
       }
@@ -83,7 +108,20 @@ export default function Home() {
       }
     }
 
+    function onSession(session: { sessionId: string; chatRoomId: string }) {
+      // set session obj to auth object
+      socket.auth = {
+        sessionId: session.sessionId,
+        chatRoomId: session.chatRoomId,
+      };
+
+      if (typeof window !== undefined) {
+        window.localStorage.setItem("chatSession", JSON.stringify(session));
+      }
+    }
+
     socket.on("connect", startChat);
+    socket.on("session", onSession);
     socket.on("chat-message", onMessaging);
     socket.on("chatRoom-connected", onChatConnected);
     socket.on("left-chat", onLeftChat);
@@ -95,8 +133,9 @@ export default function Home() {
       socket.off("chatRoom-connected", onChatConnected);
       socket.off("left-chat", onLeftChat);
       socket.off("connect_error", connectError);
+      socket.off("session", onSession);
     };
-  }, [socket]);
+  }, [socket, isChatConnected]);
 
   const handleSendMessage = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
