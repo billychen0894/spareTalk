@@ -10,9 +10,9 @@ import { flushSync } from "react-dom";
 
 export type ChatMessage = {
   sender: string;
-  receiver: string;
+  // receiver: string;
   message: string;
-  timestamp: number;
+  timestamp: string;
 };
 
 export type ChatRoom = {
@@ -77,7 +77,7 @@ export default function Home() {
   }
 
   useEffect(() => {
-    function onMessaging(message: ChatMessage) {
+    function onReceiveMessage(message: ChatMessage) {
       flushSync(() => {
         setChatMessages((prev) => [...prev, message]);
       });
@@ -122,14 +122,14 @@ export default function Home() {
 
     socket.on("connect", startChat);
     socket.on("session", onSession);
-    socket.on("chat-message", onMessaging);
+    socket.on("receive-message", onReceiveMessage);
     socket.on("chatRoom-connected", onChatConnected);
     socket.on("left-chat", onLeftChat);
     socket.on("connect_error", connectError);
 
     return () => {
       socket.off("connect", startChat);
-      socket.off("chat-message", onMessaging);
+      socket.off("receive-message", onReceiveMessage);
       socket.off("chatRoom-connected", onChatConnected);
       socket.off("left-chat", onLeftChat);
       socket.off("connect_error", connectError);
@@ -144,19 +144,22 @@ export default function Home() {
       if (!isChatConnected) return;
       if (newMessage === "") return;
 
-      const participants = currChatRoom
-        ? Array.from(currChatRoom?.participants)
-        : [];
-      const receiver =
-        socket.id === participants[0] ? participants[1] : participants[0];
-      const chatMessage: ChatMessage = {
-        sender: socket.id,
-        receiver,
-        message: newMessage,
-        timestamp: Date.now(),
+      const auth = socket.auth as {
+        sessionId?: string;
+        chatRoomId?: string;
+        [key: string]: any;
       };
 
-      socket.emit("chat-message", chatMessage);
+      const socketSessionId = auth?.sessionId ? auth?.sessionId : socket.id;
+      const chatRoomId = auth?.chatRoomId ? auth?.chatRoomId : "";
+
+      const chatMessage: ChatMessage = {
+        sender: socketSessionId,
+        message: newMessage,
+        timestamp: new Date().toISOString(),
+      };
+
+      socket.emit("send-message", chatRoomId, chatMessage);
       setChatMessages((prev) => [...prev, chatMessage]);
 
       let lastElement = chatContainerRef?.current?.lastElementChild;

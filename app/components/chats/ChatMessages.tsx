@@ -24,6 +24,12 @@ export default forwardRef(function ChatMessages(
   ref: ForwardedRef<HTMLQuoteElement | null>
 ) {
   if (!startChatSession) return null;
+  const auth = socket.auth as {
+    sessionId?: string;
+    chatRoomId?: string;
+    [key: string]: any;
+  };
+  const socketSessionId = auth?.sessionId ? auth?.sessionId : socket.id;
 
   return (
     <motion.blockquote
@@ -42,7 +48,7 @@ export default forwardRef(function ChatMessages(
         </div>
       )}
       {chatMessages.map((message, i) => {
-        return socket.id === message.sender ? (
+        return socketSessionId === message.sender ? (
           <div
             key={i}
             className="my-1 py-2 px-4 bg-purple-400 rounded-bl-3xl rounded-tl-3xl rounded-tr-xl text-white float-right clear-both max-w-md break-words"
