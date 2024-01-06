@@ -17,7 +17,7 @@ export type ChatMessage = {
 export type ChatRoom = {
   id: string;
   state: "idle" | "occupied";
-  participants: Set<string>;
+  participants: string[];
 };
 
 export default function Home() {
@@ -49,8 +49,12 @@ export default function Home() {
 
         setStartChatSession(true);
       }
+
+      if (currChatRoom && currChatRoom.participants.length !== 2) {
+        setIsChatConnected(false);
+      }
     }
-  }, [socket]);
+  }, [socket, currChatRoom]);
 
   function startChatConnection() {
     setStartChatSession(true);
@@ -82,6 +86,7 @@ export default function Home() {
 
     function onChatConnected(chatRoom: ChatRoom) {
       if (chatRoom && chatRoom.state === "occupied") {
+        console.log(chatRoom);
         setCurrChatRoom(chatRoom);
         setIsChatConnected(true);
       }
