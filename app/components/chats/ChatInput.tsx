@@ -3,25 +3,34 @@ import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
 import { motion } from "framer-motion";
 import { Dispatch, SetStateAction } from "react";
+import { Socket } from "socket.io-client";
 
 type ChatInputProps = {
   startChatSession: boolean;
   handleDisconnectChat: () => void;
   handleSendMessage: (event: React.KeyboardEvent<HTMLInputElement>) => void;
-  isLeftChat: boolean;
+  isChatConnected: boolean;
   newMessage: string;
   setNewMessage: Dispatch<SetStateAction<string>>;
+  socket: Socket;
 };
 
 export default function ChatInput({
   startChatSession,
   handleDisconnectChat,
   handleSendMessage,
-  isLeftChat,
+  isChatConnected,
   newMessage,
   setNewMessage,
+  socket,
 }: ChatInputProps) {
   if (!startChatSession) return null;
+  const auth = socket.auth as {
+    sessionId?: string;
+    chatRoomId?: string;
+    [key: string]: any;
+  };
+  const chatRoomId = auth?.chatRoomId ? auth?.chatRoomId : "";
 
   return (
     <motion.div
@@ -49,7 +58,7 @@ export default function ChatInput({
           onChange={(e) => setNewMessage(e.target.value)}
           value={newMessage}
           onKeyDown={handleSendMessage}
-          disabled={isLeftChat}
+          disabled={!isChatConnected && chatRoomId !== ""}
         />
       </form>
     </motion.div>

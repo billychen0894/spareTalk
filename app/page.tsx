@@ -10,7 +10,6 @@ import { flushSync } from "react-dom";
 
 export type ChatMessage = {
   sender: string;
-  // receiver: string;
   message: string;
   timestamp: string;
 };
@@ -28,7 +27,6 @@ export default function Home() {
   const [startChatSession, setStartChatSession] = useState<boolean>(false);
   const [currChatRoom, setCurrChatRoom] = useState<ChatRoom | null>(null);
   const chatContainerRef = useRef<HTMLQuoteElement | null>(null);
-  const [isLeftChat, setIsLeftChat] = useState<boolean>(false);
   const [isError, setIsError] = useState<boolean>(false);
   const socket = SocketClient.getInstance().getSocket();
 
@@ -70,7 +68,6 @@ export default function Home() {
       setStartChatSession(false);
       setChatMessages([]);
       setCurrChatRoom(null);
-      setIsLeftChat(false);
 
       socket.disconnect();
     }
@@ -92,7 +89,7 @@ export default function Home() {
 
     function onLeftChat(notification: string) {
       console.log(`Notification: ${notification}`);
-      setIsLeftChat(true);
+      setIsChatConnected(false);
     }
 
     function startChat() {
@@ -180,7 +177,6 @@ export default function Home() {
         <ChatMessages
           startChatSession={startChatSession}
           isChatConnected={isChatConnected}
-          isLeftChat={isLeftChat}
           chatMessages={chatMessages}
           ref={chatContainerRef}
           socket={socket}
@@ -191,9 +187,10 @@ export default function Home() {
         startChatSession={startChatSession}
         handleDisconnectChat={disconnectChat}
         handleSendMessage={handleSendMessage}
-        isLeftChat={isLeftChat}
+        isChatConnected={isChatConnected}
         setNewMessage={setNewMessage}
         newMessage={newMessage}
+        socket={socket}
       />
     </>
   );

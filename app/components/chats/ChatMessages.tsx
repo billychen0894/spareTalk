@@ -6,7 +6,6 @@ import { Socket } from "socket.io-client";
 type ChatMessagesProps = {
   startChatSession: boolean;
   isChatConnected: boolean;
-  isLeftChat: boolean;
   chatMessages: ChatMessage[];
   socket: Socket;
   isError: boolean;
@@ -16,7 +15,6 @@ export default forwardRef(function ChatMessages(
   {
     startChatSession,
     isChatConnected,
-    isLeftChat,
     chatMessages,
     socket,
     isError,
@@ -30,6 +28,7 @@ export default forwardRef(function ChatMessages(
     [key: string]: any;
   };
   const socketSessionId = auth?.sessionId ? auth?.sessionId : socket.id;
+  const chatRoomId = auth?.chatRoomId ? auth?.chatRoomId : "";
 
   return (
     <motion.blockquote
@@ -66,7 +65,7 @@ export default forwardRef(function ChatMessages(
           </div>
         );
       })}
-      {isLeftChat && (
+      {!isChatConnected && chatRoomId !== "" && (
         <div className="text-center leading-6 p-2 clear-both">
           The other person has left the chat, please click on Leave button back
           to homepage.
