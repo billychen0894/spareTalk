@@ -42,12 +42,15 @@ export default function Home() {
         };
 
         socket.auth = {
-          sessionId: chatSession.sessionId,
-          chatRoomId: chatSession.chatRoomId,
+          sessionId: chatSession?.sessionId,
+          chatRoomId: chatSession?.chatRoomId,
         };
         socket.connect();
 
         setStartChatSession(true);
+
+        // Retrieve chat messages when hard refresh or revist the site
+        socket.emit("retrieve-chat-messages", chatSession?.chatRoomId);
       }
 
       if (currChatRoom && currChatRoom.participants.length !== 2) {
@@ -122,12 +125,20 @@ export default function Home() {
       }
     }
 
+    function onChatHistory(chatMessages: ChatMessage[]) {
+      if (chatMessages.length >= 0) {
+        console.log("fire");
+        setChatMessages(chatMessages);
+      }
+    }
+
     socket.on("connect", startChat);
     socket.on("session", onSession);
     socket.on("receive-message", onReceiveMessage);
     socket.on("chatRoom-connected", onChatConnected);
     socket.on("left-chat", onLeftChat);
     socket.on("connect_error", connectError);
+    socket.on("chat-history", onChatHistory);
 
     return () => {
       socket.off("connect", startChat);
@@ -136,6 +147,7 @@ export default function Home() {
       socket.off("left-chat", onLeftChat);
       socket.off("connect_error", connectError);
       socket.off("session", onSession);
+      socket.off("chat-history", onChatHistory);
     };
   }, [socket, isChatConnected]);
 
