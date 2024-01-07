@@ -141,7 +141,17 @@ export default function Home() {
 
     function onChatHistory(chatMessages: ChatMessage[]) {
       if (chatMessages.length >= 0) {
-        setChatMessages(chatMessages);
+        flushSync(() => {
+          setChatMessages(chatMessages);
+        });
+      }
+    }
+
+    function onMissedMessages(chatMessages: ChatMessage[]) {
+      if (chatMessages.length >= 0) {
+        flushSync(() => {
+          setChatMessages((prev) => [...prev, ...chatMessages]);
+        });
       }
     }
 
@@ -152,6 +162,7 @@ export default function Home() {
     socket.on("left-chat", onLeftChat);
     socket.on("connect_error", connectError);
     socket.on("chat-history", onChatHistory);
+    socket.on("missed-messages", onMissedMessages);
 
     return () => {
       socket.off("connect", startChat);
@@ -161,6 +172,7 @@ export default function Home() {
       socket.off("connect_error", connectError);
       socket.off("session", onSession);
       socket.off("chat-history", onChatHistory);
+      socket.off("missed-messages", onMissedMessages);
     };
   }, [socket, isChatConnected]);
 
