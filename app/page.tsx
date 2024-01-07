@@ -70,7 +70,22 @@ export default function Home() {
         window.localStorage.removeItem("chatSession");
       }
 
-      socket.emit("leave-chat", currChatRoom?.id);
+      const auth = socket.auth as {
+        sessionId?: string;
+        chatRoomId?: string;
+        [key: string]: any;
+      };
+
+      const socketSessionId = auth?.sessionId ? auth?.sessionId : socket.id;
+      const chatRoomId = auth?.chatRoomId ? auth?.chatRoomId : "";
+
+      if (currChatRoom && socketSessionId) {
+        socket.emit("leave-chat", currChatRoom?.id);
+      } else if (socketSessionId && !currChatRoom && chatRoomId) {
+        // if there's an existing user session, but the other person has left the chat
+        socket.emit("leave-chat", chatRoomId);
+      }
+
       setIsChatConnected(false);
       setStartChatSession(false);
       setChatMessages([]);
@@ -89,7 +104,6 @@ export default function Home() {
 
     function onChatConnected(chatRoom: ChatRoom) {
       if (chatRoom && chatRoom.state === "occupied") {
-        console.log(chatRoom);
         setCurrChatRoom(chatRoom);
         setIsChatConnected(true);
       }
@@ -127,7 +141,6 @@ export default function Home() {
 
     function onChatHistory(chatMessages: ChatMessage[]) {
       if (chatMessages.length >= 0) {
-        console.log("fire");
         setChatMessages(chatMessages);
       }
     }
