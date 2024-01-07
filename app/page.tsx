@@ -7,8 +7,10 @@ import Menu from "@components/navigation/Menu";
 import { SocketClient } from "@websocket/socket";
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { v4 as uuidv4 } from "uuid";
 
 export type ChatMessage = {
+  id: string;
   sender: string;
   message: string;
   timestamp: string;
@@ -50,7 +52,8 @@ export default function Home() {
         setStartChatSession(true);
 
         // Retrieve chat messages when hard refresh or revist the site
-        socket.emit("retrieve-chat-messages", chatSession?.chatRoomId);
+        const eventId = uuidv4();
+        socket.emit("retrieve-chat-messages", chatSession?.chatRoomId, eventId);
       }
 
       if (currChatRoom && currChatRoom.participants.length !== 2) {
@@ -116,7 +119,8 @@ export default function Home() {
 
     function startChat() {
       if (socket.connected && socket.id) {
-        socket.emit("start-chat", socket.id);
+        const eventId = uuidv4();
+        socket.emit("start-chat", socket.id, eventId);
       }
     }
 
@@ -189,16 +193,20 @@ export default function Home() {
         [key: string]: any;
       };
 
-      const socketSessionId = auth?.sessionId ? auth?.sessionId : socket.id;
+      const socketSessionId = auth?.sessionId
+        ? auth.sessionId
+        : (socket.id as string);
       const chatRoomId = auth?.chatRoomId ? auth?.chatRoomId : "";
 
       const chatMessage: ChatMessage = {
+        id: uuidv4(),
         sender: socketSessionId,
         message: newMessage,
         timestamp: new Date().toISOString(),
       };
+      const eventId = uuidv4();
 
-      socket.emit("send-message", chatRoomId, chatMessage);
+      socket.emit("send-message", chatRoomId, chatMessage, eventId);
       setChatMessages((prev) => [...prev, chatMessage]);
 
       let lastElement = chatContainerRef?.current?.lastElementChild;
