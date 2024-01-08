@@ -28,7 +28,7 @@ export default forwardRef(function ChatMessages(
     [key: string]: any;
   };
   const socketSessionId = auth?.sessionId ? auth?.sessionId : socket.id;
-  const chatRoomId = auth?.chatRoomId ? auth?.chatRoomId : "";
+  const chatRoomId = auth?.chatRoomId ? auth?.chatRoomId : null;
 
   return (
     <motion.blockquote
@@ -41,7 +41,7 @@ export default forwardRef(function ChatMessages(
       <div className="text-center leading-6">
         Searching for someone to chat...
       </div>
-      {isChatConnected && (
+      {chatRoomId && (
         <div className="text-center leading-6 p-2">
           Connection completed, start to chat!
         </div>
@@ -65,7 +65,7 @@ export default forwardRef(function ChatMessages(
           </div>
         );
       })}
-      {!isChatConnected && chatRoomId !== "" && (
+      {!isChatConnected && chatRoomId && (
         <div className="text-center leading-6 p-2 clear-both">
           The other person has left the chat, please click on Leave button back
           to homepage.
