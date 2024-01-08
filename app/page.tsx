@@ -89,11 +89,14 @@ export default function Home() {
         socket.emit("leave-chat", chatRoomId);
       }
 
+      // Reset necessary states
       setIsChatConnected(false);
       setStartChatSession(false);
       setChatMessages([]);
       setCurrChatRoom(null);
 
+      auth.sessionId = "";
+      auth.chatRoomId = "";
       socket.disconnect();
     }
   }
