@@ -38,22 +38,37 @@ export default function Home() {
       const chatSessionObj = window.localStorage.getItem("chatSession");
 
       if (chatSessionObj) {
-        const chatSession = JSON.parse(chatSessionObj) as {
+        const { sessionId, chatRoomId } = JSON.parse(chatSessionObj) as {
           sessionId: string;
           chatRoomId: string;
         };
 
-        socket.auth = {
-          sessionId: chatSession?.sessionId,
-          chatRoomId: chatSession?.chatRoomId,
-        };
-        socket.connect();
+        // if there's chatRoom session
+        if (sessionId && chatRoomId) {
+          socket.auth = {
+            sessionId,
+            chatRoomId,
+          };
 
-        setStartChatSession(true);
+          socket.connect();
+          setStartChatSession(true);
 
-        // Retrieve chat messages when hard refresh or revist the site
-        const eventId = uuidv4();
-        socket.emit("retrieve-chat-messages", chatSession?.chatRoomId, eventId);
+          // Retrieve chat messages when hard refresh or revist the site
+          const eventId = uuidv4();
+          socket.emit("retrieve-chat-messages", chatRoomId, eventId);
+        } else {
+          window.localStorage.removeItem("chatSession");
+          socket.auth = {
+            sessionId: "",
+            chatRoomId: "",
+          };
+
+          setIsChatConnected(false);
+          setStartChatSession(false);
+          setChatMessages([]);
+          setCurrChatRoom(null);
+          socket.disconnect();
+        }
       }
 
       if (currChatRoom && currChatRoom.participants.length !== 2) {
