@@ -3,7 +3,6 @@
 import ChatAction from "@components/chats/ChatAction";
 import ChatInput from "@components/chats/ChatInput";
 import ChatMessages from "@components/chats/ChatMessages";
-import Menu from "@components/navigation/Menu";
 import { SocketClient } from "@websocket/socket";
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -57,7 +56,6 @@ export default function Home() {
 
           socket.connect();
           setStartChatSession(true);
-          console.log("started chat");
 
           // Retrieve chat messages when hard refresh or revist the site
           const eventId = uuidv4();
@@ -70,7 +68,6 @@ export default function Home() {
           };
 
           setIsChatConnected(false);
-          console.log("chatIsConnected state change - 1", isChatConnected);
           setStartChatSession(false);
           setChatMessages([]);
           setCurrChatRoom(null);
@@ -80,7 +77,6 @@ export default function Home() {
 
       if (currChatRoom && currChatRoom.participants.length !== 2) {
         setIsChatConnected(false);
-        console.log("chatIsConnected state change - 2", isChatConnected);
       }
     }
   }, [socket, currChatRoom]);
@@ -114,7 +110,6 @@ export default function Home() {
 
       // Reset necessary states
       setIsChatConnected(false);
-      console.log("chatIsConnected state change - 3", isChatConnected);
       setStartChatSession(false);
       setChatMessages([]);
       setCurrChatRoom(null);
@@ -136,14 +131,12 @@ export default function Home() {
       if (chatRoom && chatRoom.state === "occupied") {
         setCurrChatRoom(chatRoom);
         setIsChatConnected(true);
-        console.log("chatIsConnected state change - 4", isChatConnected);
       }
     }
 
     function onLeftChat(notification: string) {
       console.log(`Notification: ${notification}`);
       setIsChatConnected(false);
-      console.log("chatIsConnected state change - 5", isChatConnected);
     }
 
     function startChat() {
@@ -194,7 +187,6 @@ export default function Home() {
         window.localStorage.removeItem("chatSession");
 
         setIsChatConnected(false);
-        console.log("chatIsConnected state change - 6", isChatConnected);
         setStartChatSession(false);
         setChatMessages([]);
         setCurrChatRoom(null);
@@ -270,7 +262,6 @@ export default function Home() {
   return (
     <>
       <main className="text-white w-full min-h-screen overflow-y-auto flex flex-col justify-center items-center scroll-smooth">
-        <Menu />
         <ChatAction
           startChatSession={startChatSession}
           handleChatConnection={startChatConnection}
