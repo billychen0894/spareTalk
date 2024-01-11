@@ -31,6 +31,11 @@ export default function Home() {
   const chatContainerRef = useRef<HTMLQuoteElement | null>(null);
   const [isError, setIsError] = useState<boolean>(false);
   const socket = SocketClient.getInstance().getSocket();
+  const auth = socket.auth as {
+    sessionId?: string;
+    chatRoomId?: string;
+    [key: string]: any;
+  };
 
   useEffect(() => {
     // Recover session if exists
@@ -177,6 +182,18 @@ export default function Home() {
       }
     }
 
+    function onInactiveChatRoom(chatRoom: ChatRoom) {
+      // Remove session and reset states
+      if (typeof window !== undefined) {
+        window.localStorage.removeItem("chatSession");
+
+        setIsChatConnected(false);
+        setStartChatSession(false);
+        setChatMessages([]);
+        setCurrChatRoom(null);
+      }
+    }
+
     socket.on("connect", startChat);
     socket.on("session", onSession);
     socket.on("receive-message", onReceiveMessage);
@@ -185,6 +202,7 @@ export default function Home() {
     socket.on("connect_error", connectError);
     socket.on("chat-history", onChatHistory);
     socket.on("missed-messages", onMissedMessages);
+    socket.on("inactive-chatRoom", onInactiveChatRoom);
 
     return () => {
       socket.off("connect", startChat);
@@ -195,6 +213,7 @@ export default function Home() {
       socket.off("session", onSession);
       socket.off("chat-history", onChatHistory);
       socket.off("missed-messages", onMissedMessages);
+      socket.off("inactive-chatRoom", onInactiveChatRoom);
     };
   }, [socket, isChatConnected]);
 
