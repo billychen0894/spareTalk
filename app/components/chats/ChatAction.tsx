@@ -16,7 +16,7 @@ export default function ChatAction({
       className="mx-auto max-w-3xl flex flex-col justify-center items-center space-y-16"
       animate={startChatSession ? "start" : "end"}
       variants={{
-        start: { opacity: 0, y: -20 },
+        start: { opacity: 0, pointerEvents: "none", y: -20 },
         end: { opacity: 1, y: 0 },
       }}
     >
