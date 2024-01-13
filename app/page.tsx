@@ -1,10 +1,11 @@
 "use client";
 
+import { getChatRoomById } from "@actions/getChatRoomById";
 import ChatAction from "@components/chats/ChatAction";
 import ChatInput from "@components/chats/ChatInput";
 import ChatMessages from "@components/chats/ChatMessages";
 import { SocketClient } from "@websocket/socket";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { flushSync } from "react-dom";
 import { v4 as uuidv4 } from "uuid";
 
@@ -21,6 +22,12 @@ export type ChatRoom = {
   participants: string[];
 };
 
+export type SocketAuth = {
+  sessionId?: string;
+  chatRoomId?: string;
+  [key: string]: any;
+};
+
 export default function Home() {
   const [newMessage, setNewMessage] = useState<string>("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -30,11 +37,7 @@ export default function Home() {
   const chatContainerRef = useRef<HTMLQuoteElement | null>(null);
   const [isError, setIsError] = useState<boolean>(false);
   const socket = SocketClient.getInstance().getSocket();
-  const auth = socket.auth as {
-    sessionId?: string;
-    chatRoomId?: string;
-    [key: string]: any;
-  };
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     // Recover session if exists
@@ -49,6 +52,27 @@ export default function Home() {
 
         // if there's chatRoom session
         if (sessionId && chatRoomId) {
+          // Check session from server
+          startTransition(async () => {
+            const chatRoom = await getChatRoomById(chatRoomId);
+
+            // if there's no session in server then reset all states
+            if (!chatRoom && !isPending) {
+              window.localStorage.removeItem("chatSession");
+              socket.auth = {
+                sessionId: "",
+                chatRoomId: "",
+              };
+
+              setIsChatConnected(false);
+              setStartChatSession(false);
+              setChatMessages([]);
+              setCurrChatRoom(null);
+              socket.disconnect();
+            }
+          });
+
+          // if states don't get reset, then retrieve session
           socket.auth = {
             sessionId,
             chatRoomId,
@@ -79,7 +103,7 @@ export default function Home() {
         setIsChatConnected(false);
       }
     }
-  }, [socket, currChatRoom]);
+  }, [socket, currChatRoom, isPending]);
 
   function startChatConnection() {
     setStartChatSession(true);
