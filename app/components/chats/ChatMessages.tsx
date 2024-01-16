@@ -1,11 +1,11 @@
-import { ChatMessage } from "@page";
+import { ChatMessage, ChatRoom, SocketAuth } from "@page";
 import { motion } from "framer-motion";
 import { ForwardedRef, forwardRef } from "react";
 import { Socket } from "socket.io-client";
 
 type ChatMessagesProps = {
   startChatSession: boolean;
-  isChatConnected: boolean;
+  currChatRoom: ChatRoom | null;
   chatMessages: ChatMessage[];
   socket: Socket;
   isError: boolean;
@@ -14,7 +14,7 @@ type ChatMessagesProps = {
 export default forwardRef(function ChatMessages(
   {
     startChatSession,
-    isChatConnected,
+    currChatRoom,
     chatMessages,
     socket,
     isError,
@@ -22,11 +22,7 @@ export default forwardRef(function ChatMessages(
   ref: ForwardedRef<HTMLQuoteElement | null>
 ) {
   if (!startChatSession) return null;
-  const auth = socket.auth as {
-    sessionId?: string;
-    chatRoomId?: string;
-    [key: string]: any;
-  };
+  const auth = socket.auth as SocketAuth;
   const socketSessionId = auth?.sessionId ? auth?.sessionId : socket.id;
   const chatRoomId = auth?.chatRoomId ? auth?.chatRoomId : null;
 
@@ -65,7 +61,7 @@ export default forwardRef(function ChatMessages(
           </div>
         );
       })}
-      {!isChatConnected && chatRoomId && (
+      {currChatRoom && currChatRoom.state === "idle" && (
         <div className="text-center leading-6 p-2 clear-both">
           The other person has left the chat, please click on Leave button back
           to homepage.

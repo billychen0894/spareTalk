@@ -1,6 +1,7 @@
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
+import { ChatRoom, SocketAuth } from "@page";
 import { motion } from "framer-motion";
 import { Dispatch, SetStateAction } from "react";
 import { Socket } from "socket.io-client";
@@ -9,7 +10,7 @@ type ChatInputProps = {
   startChatSession: boolean;
   handleDisconnectChat: () => void;
   handleSendMessage: (event: React.KeyboardEvent<HTMLInputElement>) => void;
-  isChatConnected: boolean;
+  currChatRoom: ChatRoom | null;
   newMessage: string;
   setNewMessage: Dispatch<SetStateAction<string>>;
   socket: Socket;
@@ -19,17 +20,13 @@ export default function ChatInput({
   startChatSession,
   handleDisconnectChat,
   handleSendMessage,
-  isChatConnected,
+  currChatRoom,
   newMessage,
   setNewMessage,
   socket,
 }: ChatInputProps) {
   if (!startChatSession) return null;
-  const auth = socket.auth as {
-    sessionId?: string;
-    chatRoomId?: string;
-    [key: string]: any;
-  };
+  const auth = socket.auth as SocketAuth;
   const chatRoomId = auth?.chatRoomId ? auth?.chatRoomId : "";
 
   return (
@@ -58,7 +55,7 @@ export default function ChatInput({
           onChange={(e) => setNewMessage(e.target.value)}
           value={newMessage}
           onKeyDown={handleSendMessage}
-          disabled={!isChatConnected && chatRoomId !== ""}
+          disabled={currChatRoom?.state === "idle" && chatRoomId !== ""}
         />
       </form>
     </motion.div>
