@@ -1,11 +1,10 @@
 "use client";
 
-import { getChatRoomById } from "@actions/getChatRoomById";
 import ChatAction from "@components/chats/ChatAction";
 import ChatInput from "@components/chats/ChatInput";
 import ChatMessages from "@components/chats/ChatMessages";
 import { SocketClient } from "@websocket/socket";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { v4 as uuidv4 } from "uuid";
 
@@ -31,13 +30,13 @@ export type SocketAuth = {
 export default function Home() {
   const [newMessage, setNewMessage] = useState<string>("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [isChatConnected, setIsChatConnected] = useState<boolean>(false);
   const [startChatSession, setStartChatSession] = useState<boolean>(false);
   const [currChatRoom, setCurrChatRoom] = useState<ChatRoom | null>(null);
   const chatContainerRef = useRef<HTMLQuoteElement | null>(null);
   const [isError, setIsError] = useState<boolean>(false);
   const socket = SocketClient.getInstance().getSocket();
-  const [isPending, startTransition] = useTransition();
+  const [sessionId, setSessionId] = useState<string>("");
+  const [chatRoomId, setChatRoomId] = useState<string>("");
 
   useEffect(() => {
     // Recover session if exists
@@ -50,93 +49,46 @@ export default function Home() {
           chatRoomId: string;
         };
 
-        // if there's chatRoom session
-        if (sessionId && chatRoomId) {
-          // Check session from server
-          startTransition(async () => {
-            const chatRoom = await getChatRoomById(chatRoomId);
-
-            // if there's no session in server then reset all states
-            if (!chatRoom && !isPending) {
-              window.localStorage.removeItem("chatSession");
-              socket.auth = {
-                sessionId: "",
-                chatRoomId: "",
-              };
-
-              setIsChatConnected(false);
-              setStartChatSession(false);
-              setChatMessages([]);
-              setCurrChatRoom(null);
-              socket.disconnect();
-            }
-          });
-
-          // if states don't get reset, then retrieve session
-          socket.auth = {
-            sessionId,
-            chatRoomId,
-          };
-
-          socket.connect();
-          setStartChatSession(true);
-
-          // Retrieve chat messages when hard refresh or revist the site
-          const eventId = uuidv4();
-          socket.emit("retrieve-chat-messages", chatRoomId, eventId);
-        } else {
+        if (sessionId && !chatRoomId && !startChatSession) {
           window.localStorage.removeItem("chatSession");
           socket.auth = {
             sessionId: "",
             chatRoomId: "",
           };
+          setSessionId("");
+          setChatRoomId("");
+        }
 
-          setIsChatConnected(false);
-          setStartChatSession(false);
-          setChatMessages([]);
-          setCurrChatRoom(null);
-          socket.disconnect();
+        if (sessionId && chatRoomId) {
+          socket.auth = {
+            sessionId,
+            chatRoomId,
+          };
+          socket.connect();
+          setSessionId(sessionId);
+          setChatRoomId(chatRoomId);
         }
       }
-
-      if (currChatRoom && currChatRoom.participants.length !== 2) {
-        setIsChatConnected(false);
-      }
     }
-  }, [socket, currChatRoom, isPending]);
+  }, [socket, startChatSession]);
 
   function startChatConnection() {
-    setStartChatSession(true);
     socket.connect();
+    setStartChatSession(true);
   }
 
   function disconnectChat() {
-    if (socket) {
-      if (typeof window !== undefined) {
-        window.localStorage.removeItem("chatSession");
-      }
+    if (socket.connected && typeof window !== undefined) {
+      socket.emit("leave-chat", currChatRoom?.id);
 
-      const auth = socket.auth as {
-        sessionId?: string;
-        chatRoomId?: string;
-        [key: string]: any;
-      };
+      window.localStorage.removeItem("chatSession");
+      const auth = socket.auth as SocketAuth;
 
-      const socketSessionId = auth?.sessionId ? auth?.sessionId : socket.id;
-      const chatRoomId = auth?.chatRoomId ? auth?.chatRoomId : "";
-
-      if (currChatRoom && socketSessionId) {
-        socket.emit("leave-chat", currChatRoom?.id);
-      } else if (socketSessionId && !currChatRoom && chatRoomId) {
-        // if there's an existing user session, but the other person has left the chat
-        socket.emit("leave-chat", chatRoomId);
-      }
-
-      // Reset necessary states
-      setIsChatConnected(false);
       setStartChatSession(false);
       setChatMessages([]);
       setCurrChatRoom(null);
+      setSessionId("");
+      setChatRoomId("");
 
       auth.sessionId = "";
       auth.chatRoomId = "";
@@ -151,22 +103,35 @@ export default function Home() {
       });
     }
 
-    function onChatConnected(chatRoom: ChatRoom) {
-      if (chatRoom && chatRoom.state === "occupied") {
+    function onChatRoomCreated(chatRoom: ChatRoom) {
+      if (socket.connected && chatRoom) {
         setCurrChatRoom(chatRoom);
-        setIsChatConnected(true);
       }
     }
 
-    function onLeftChat(notification: string) {
-      console.log(`Notification: ${notification}`);
-      setIsChatConnected(false);
+    function onLeftChat(userId: string) {
+      if (currChatRoom) {
+        setCurrChatRoom({
+          id: currChatRoom.id,
+          state: "idle",
+          participants: currChatRoom.participants.filter((id) => id !== userId),
+        });
+      }
     }
 
     function startChat() {
-      if (socket.connected && socket.id) {
+      if (socket.connected) {
         const eventId = uuidv4();
-        socket.emit("start-chat", socket.id, eventId);
+        console.log("sesssionId", sessionId);
+        console.log("chatRoomId", chatRoomId);
+
+        if (sessionId && chatRoomId) {
+          socket.emit("check-chatRoom-session", chatRoomId, sessionId, eventId);
+        }
+
+        if (!chatRoomId) {
+          socket.emit("start-chat", socket.id, eventId);
+        }
       }
     }
 
@@ -178,13 +143,15 @@ export default function Home() {
     }
 
     function onSession(session: { sessionId: string; chatRoomId: string }) {
-      // set session obj to auth object
-      socket.auth = {
-        sessionId: session.sessionId,
-        chatRoomId: session.chatRoomId,
-      };
+      if (socket.connected && typeof window !== undefined) {
+        // set session obj to auth object
+        socket.auth = {
+          sessionId: session.sessionId,
+          chatRoomId: session.chatRoomId,
+        };
+        setSessionId(session?.sessionId);
+        setChatRoomId(session?.chatRoomId);
 
-      if (typeof window !== undefined) {
         window.localStorage.setItem("chatSession", JSON.stringify(session));
       }
     }
@@ -210,10 +177,39 @@ export default function Home() {
       if (typeof window !== undefined) {
         window.localStorage.removeItem("chatSession");
 
-        setIsChatConnected(false);
         setStartChatSession(false);
         setChatMessages([]);
         setCurrChatRoom(null);
+        setSessionId("");
+        setChatRoomId("");
+
+        socket.auth = {
+          sessionId: "",
+          chatRoomId: "",
+        };
+
+        socket.disconnect();
+      }
+    }
+
+    function onReceiveChatRoomSession(chatRoom: ChatRoom | null) {
+      if (socket.connected && chatRoom) {
+        const eventId = uuidv4();
+        console.log("socket-auth on receive chatRoomSession", socket.auth);
+        socket.emit("start-chat", socket.id, eventId);
+        socket.emit("retrieve-chat-messages", chatRoom?.id, eventId);
+
+        setStartChatSession(true);
+        setCurrChatRoom(chatRoom);
+      }
+      if (socket.connected && !chatRoom && typeof window !== undefined) {
+        window.localStorage.removeItem("chatSession");
+
+        setStartChatSession(false);
+        setChatMessages([]);
+        setCurrChatRoom(null);
+        setSessionId("");
+        setChatRoomId("");
 
         socket.auth = {
           sessionId: "",
@@ -227,32 +223,31 @@ export default function Home() {
     socket.on("connect", startChat);
     socket.on("session", onSession);
     socket.on("receive-message", onReceiveMessage);
-    socket.on("chatRoom-connected", onChatConnected);
+    socket.on("chatRoom-created", onChatRoomCreated);
     socket.on("left-chat", onLeftChat);
     socket.on("connect_error", connectError);
     socket.on("chat-history", onChatHistory);
     socket.on("missed-messages", onMissedMessages);
     socket.on("inactive-chatRoom", onInactiveChatRoom);
+    socket.on("receive-chatRoom-session", onReceiveChatRoomSession);
 
     return () => {
       socket.off("connect", startChat);
       socket.off("receive-message", onReceiveMessage);
-      socket.off("chatRoom-connected", onChatConnected);
+      socket.off("chatRoom-created", onChatRoomCreated);
       socket.off("left-chat", onLeftChat);
       socket.off("connect_error", connectError);
       socket.off("session", onSession);
       socket.off("chat-history", onChatHistory);
       socket.off("missed-messages", onMissedMessages);
       socket.off("inactive-chatRoom", onInactiveChatRoom);
+      socket.off("receive-chatRoom-session", onReceiveChatRoomSession);
     };
-  }, [socket, isChatConnected]);
+  }, [socket, chatRoomId, sessionId, currChatRoom]);
 
   const handleSendMessage = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
+    if (event.key === "Enter" && currChatRoom && newMessage.trim()) {
       event.preventDefault();
-
-      if (!isChatConnected) return;
-      if (newMessage === "") return;
 
       const auth = socket.auth as {
         sessionId?: string;
@@ -292,7 +287,7 @@ export default function Home() {
         />
         <ChatMessages
           startChatSession={startChatSession}
-          isChatConnected={isChatConnected}
+          currChatRoom={currChatRoom}
           chatMessages={chatMessages}
           ref={chatContainerRef}
           socket={socket}
@@ -303,7 +298,7 @@ export default function Home() {
         startChatSession={startChatSession}
         handleDisconnectChat={disconnectChat}
         handleSendMessage={handleSendMessage}
-        isChatConnected={isChatConnected}
+        currChatRoom={currChatRoom}
         setNewMessage={setNewMessage}
         newMessage={newMessage}
         socket={socket}
