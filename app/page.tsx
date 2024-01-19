@@ -122,8 +122,6 @@ export default function Home() {
     function startChat() {
       if (socket.connected) {
         const eventId = uuidv4();
-        console.log("sesssionId", sessionId);
-        console.log("chatRoomId", chatRoomId);
 
         if (sessionId && chatRoomId) {
           socket.emit("check-chatRoom-session", chatRoomId, sessionId, eventId);
@@ -195,7 +193,6 @@ export default function Home() {
     function onReceiveChatRoomSession(chatRoom: ChatRoom | null) {
       if (socket.connected && chatRoom) {
         const eventId = uuidv4();
-        console.log("socket-auth on receive chatRoomSession", socket.auth);
         socket.emit("start-chat", socket.id, eventId);
         socket.emit("retrieve-chat-messages", chatRoom?.id, eventId);
 
