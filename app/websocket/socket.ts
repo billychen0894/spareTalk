@@ -9,6 +9,7 @@ export class SocketClient {
       autoConnect: false,
       ackTimeout: 10000,
       retries: 3,
+      withCredentials: true,
     });
   }
 
