@@ -7,7 +7,7 @@ export class SocketClient {
   constructor() {
     this.socket = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
       autoConnect: false,
-      ackTimeout: 10000,
+      ackTimeout: 3000,
       retries: 3,
       withCredentials: true,
     });
