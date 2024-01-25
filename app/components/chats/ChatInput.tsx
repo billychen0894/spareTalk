@@ -36,7 +36,10 @@ export default function ChatInput({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeInOut" }}
     >
-      <form className="w-full h-full flex items-center bg-[#FCFAFA]">
+      <form
+        className="w-full h-full flex items-center bg-[#FCFAFA]"
+        onSubmit={(event) => event.preventDefault()}
+      >
         <Button
           type="button"
           className="bg-transparent hover:bg-transparent font-bold text-base leading-6 text-rose-500 hover:text-rose-400"
