@@ -79,20 +79,29 @@ export default function Home() {
 
   function disconnectChat() {
     if (socket.connected && typeof window !== undefined) {
-      socket.emit("leave-chat", currChatRoom?.id);
+      const eventId = uuidv4();
+      socket.emit(
+        "leave-chat",
+        currChatRoom?.id,
+        eventId,
+        (err: any, response: any) => {
+          if (response.status === "ok") {
+            const auth = socket.auth as SocketAuth;
+
+            setSessionId("");
+            setChatRoomId("");
+            auth.sessionId = "";
+            auth.chatRoomId = "";
+
+            socket.disconnect();
+          }
+        }
+      );
 
       window.localStorage.removeItem("chatSession");
-      const auth = socket.auth as SocketAuth;
-
       setStartChatSession(false);
       setChatMessages([]);
       setCurrChatRoom(null);
-      setSessionId("");
-      setChatRoomId("");
-
-      auth.sessionId = "";
-      auth.chatRoomId = "";
-      socket.disconnect();
     }
   }
 
@@ -111,6 +120,7 @@ export default function Home() {
 
     function onLeftChat(userId: string) {
       if (currChatRoom) {
+        console.log("left chat", userId);
         setCurrChatRoom({
           id: currChatRoom.id,
           state: "idle",
@@ -128,7 +138,15 @@ export default function Home() {
         }
 
         if (!chatRoomId) {
-          socket.emit("start-chat", socket.id, eventId);
+          socket.emit(
+            "start-chat",
+            socket.id,
+            eventId,
+            (err: any, response: any) => {
+              console.log("err", err);
+              console.log("response", response);
+            }
+          );
         }
       }
     }
@@ -201,6 +219,7 @@ export default function Home() {
       }
       if (socket.connected && !chatRoom && typeof window !== undefined) {
         window.localStorage.removeItem("chatSession");
+        const auth = socket.auth as SocketAuth;
 
         setStartChatSession(false);
         setChatMessages([]);
@@ -208,15 +227,22 @@ export default function Home() {
         setSessionId("");
         setChatRoomId("");
 
-        socket.auth = {
-          sessionId: "",
-          chatRoomId: "",
-        };
+        auth.sessionId = "";
+        auth.chatRoomId = "";
 
         socket.disconnect();
       }
     }
 
+    function disconnect(reason: any) {
+      if (reason === "io client disconnect") {
+        console.log(reason);
+        return;
+      }
+      // TODO: if disconnection is due to internet, then retries reconnection and providing UI feedback
+    }
+
+    socket.on("disconnect", disconnect);
     socket.on("connect", startChat);
     socket.on("session", onSession);
     socket.on("receive-message", onReceiveMessage);
@@ -239,23 +265,18 @@ export default function Home() {
       socket.off("missed-messages", onMissedMessages);
       socket.off("inactive-chatRoom", onInactiveChatRoom);
       socket.off("receive-chatRoom-session", onReceiveChatRoomSession);
+      socket.off("disconnect", disconnect);
     };
   }, [socket, chatRoomId, sessionId, currChatRoom]);
 
   const handleSendMessage = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter" && currChatRoom && newMessage.trim()) {
+    if (event.key === "Enter" && currChatRoom && newMessage.trim() !== "") {
       event.preventDefault();
 
-      const auth = socket.auth as {
-        sessionId?: string;
-        chatRoomId?: string;
-        [key: string]: any;
-      };
+      const auth = socket.auth as SocketAuth;
 
-      const socketSessionId = auth?.sessionId
-        ? auth.sessionId
-        : (socket.id as string);
-      const chatRoomId = auth?.chatRoomId ? auth?.chatRoomId : "";
+      const socketSessionId = auth?.sessionId || (socket.id as string);
+      const chatRoomId = auth?.chatRoomId || "";
 
       const chatMessage: ChatMessage = {
         id: uuidv4(),
@@ -263,13 +284,13 @@ export default function Home() {
         message: newMessage,
         timestamp: new Date().toISOString(),
       };
-      const eventId = uuidv4();
 
+      const eventId = uuidv4();
       socket.emit("send-message", chatRoomId, chatMessage, eventId);
+
       setChatMessages((prev) => [...prev, chatMessage]);
 
-      let lastElement = chatContainerRef?.current?.lastElementChild;
-      lastElement?.scrollIntoView();
+      chatContainerRef?.current?.lastElementChild?.scrollIntoView();
 
       setNewMessage("");
     }
