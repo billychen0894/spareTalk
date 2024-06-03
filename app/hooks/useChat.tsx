@@ -230,6 +230,14 @@ export const useChat = () => {
   }, [socket]);
 
   const disconnectChat = useCallback(() => {
+    if (!socket.connected && typeof window !== undefined) {
+      window.localStorage.removeItem("chatSession");
+      setStartChatSession(false);
+      setChatMessages([]);
+      setCurrChatRoom(null);
+      return;
+    }
+
     if (socket.connected && typeof window !== undefined) {
       const eventId = uuidv4();
       socket.emit(
