@@ -1,14 +1,14 @@
-import { ChatMessage, ChatRoom, SocketAuth } from "@page";
 import { motion } from "framer-motion";
 import { ForwardedRef, forwardRef } from "react";
 import { Socket } from "socket.io-client";
+import { ChatMessage, ChatRoom, SocketAuth } from "types/types";
 
 type ChatMessagesProps = {
   startChatSession: boolean;
   currChatRoom: ChatRoom | null;
   chatMessages: ChatMessage[];
   socket: Socket;
-  isError: boolean;
+  isError: { isError: boolean; errorMessage: string };
 };
 
 export default forwardRef(function ChatMessages(
@@ -19,7 +19,7 @@ export default forwardRef(function ChatMessages(
     socket,
     isError,
   }: ChatMessagesProps,
-  ref: ForwardedRef<HTMLQuoteElement | null>
+  ref: ForwardedRef<HTMLQuoteElement | null>,
 ) {
   if (!startChatSession) return null;
   const auth = socket.auth as SocketAuth;
@@ -67,9 +67,9 @@ export default forwardRef(function ChatMessages(
           to homepage.
         </div>
       )}
-      {isError && (
+      {isError.isError && (
         <div className="text-center leading-6 p-2 clear-both">
-          Connection Error! Please try again later.
+          {isError.errorMessage}
         </div>
       )}
     </motion.blockquote>

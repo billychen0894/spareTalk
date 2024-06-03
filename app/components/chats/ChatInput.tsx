@@ -1,10 +1,10 @@
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
-import { ChatRoom, SocketAuth } from "@page";
 import { motion } from "framer-motion";
 import { Dispatch, SetStateAction } from "react";
 import { Socket } from "socket.io-client";
+import { ChatRoom, SocketAuth } from "types/types";
 
 type ChatInputProps = {
   startChatSession: boolean;
