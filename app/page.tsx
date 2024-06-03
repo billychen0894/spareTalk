@@ -4,6 +4,7 @@ import ChatAction from "@components/chats/ChatAction";
 import ChatInput from "@components/chats/ChatInput";
 import ChatMessages from "@components/chats/ChatMessages";
 import { SocketClient } from "@websocket/socket";
+import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { v4 as uuidv4 } from "uuid";
@@ -37,6 +38,7 @@ export default function Home() {
   const socket = SocketClient.getInstance().getSocket();
   const [sessionId, setSessionId] = useState<string>("");
   const [chatRoomId, setChatRoomId] = useState<string>("");
+  const [isTempDisconnect, setIsTempDisconnect] = useState<Boolean>(false);
 
   useEffect(() => {
     // Recover session if exists
@@ -95,7 +97,7 @@ export default function Home() {
 
             socket.disconnect();
           }
-        }
+        },
       );
 
       window.localStorage.removeItem("chatSession");
@@ -120,7 +122,6 @@ export default function Home() {
 
     function onLeftChat(userId: string) {
       if (currChatRoom) {
-        console.log("left chat", userId);
         setCurrChatRoom({
           id: currChatRoom.id,
           state: "idle",
@@ -145,7 +146,7 @@ export default function Home() {
             (err: any, response: any) => {
               console.log("err", err);
               console.log("response", response);
-            }
+            },
           );
         }
       }
@@ -240,6 +241,7 @@ export default function Home() {
         return;
       }
       // TODO: if disconnection is due to internet, then retries reconnection and providing UI feedback
+      setIsTempDisconnect(true);
     }
 
     socket.on("disconnect", disconnect);
@@ -298,6 +300,13 @@ export default function Home() {
 
   return (
     <>
+      <div
+        className={`fixed top-0 left-0 w-full bg-gray-400 bg-opacity-30 backdrop-blur-lg shadow-lg text-center ${isTempDisconnect ? "opacity-100 transition-opacity duration-500" : "opacity-0 pointer-events-none transition-opacity duration-500"}`}
+      >
+        <span className="font-semibold text-sm my-auto text-gray-700 py-2">
+          You&apos;re currently offline. Please check your Internet connection.
+        </span>
+      </div>
       <main className="text-white w-full min-h-screen overflow-y-auto flex flex-col justify-center items-center scroll-smooth">
         <ChatAction
           startChatSession={startChatSession}
