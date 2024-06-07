@@ -157,10 +157,7 @@ export const useChat = () => {
     function disconnect(reason: any) {
       console.log("Disconnect reason:", reason);
 
-      if (
-        reason === "io client disconnect" ||
-        reason === "io server disconnect"
-      ) {
+      if (reason === "io server disconnect") {
         socket.connect();
       } else {
         setIsOffline(true);
